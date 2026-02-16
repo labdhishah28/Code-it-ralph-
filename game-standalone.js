@@ -60,7 +60,14 @@ class BootScene extends Phaser.Scene {
         this.load.image(tileset.key, `${basePath}/${tileset.path}`);
 
         // Load coin sprite
-        this.load.image('coin', 'coin.jpeg');
+        this.load.image('coin', 'coin1.png');
+
+        // Load dragon and fire sprites
+        this.load.image('dragon', 'dragon.png');
+        this.load.image('fire', 'fire.png');
+
+        // Load power-up sprite
+        this.load.image('powerup-health', 'leg.png');
 
         // Start loading
         this.load.once('complete', () => {
@@ -94,7 +101,7 @@ class GameScene extends Phaser.Scene {
 
         // Coin spawning system
         this.coinSpawnTimer = 0;
-        this.coinSpawnInterval = 4000; // 4 seconds
+        this.coinSpawnInterval = 1000; // 1 second (changed from 4000)
         this.difficultyLevel = 1;
         this.nextCoinX = 400; // Start spawning ahead of player
 
@@ -105,7 +112,7 @@ class GameScene extends Phaser.Scene {
 
         // Power-up system
         this.powerUpSpawnTimer = 0;
-        this.powerUpSpawnInterval = 15000; // 15 seconds
+        this.powerUpSpawnInterval = 6000; // 6 seconds (changed from 15000)
     }
 
     create() {
@@ -278,6 +285,50 @@ class GameScene extends Phaser.Scene {
 
         // === UI ===
         this.createUI();
+
+        // === AUDIO ===
+        // Initialize audio context for sound effects
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    // === SOUND EFFECTS ===
+    playCoinSound() {
+        const ctx = this.audioContext;
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+
+        // Pleasant coin sound (high pitch)
+        oscillator.frequency.setValueAtTime(800, ctx.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
+
+        gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+
+        oscillator.start(ctx.currentTime);
+        oscillator.stop(ctx.currentTime + 0.2);
+    }
+
+    playDragonSound() {
+        const ctx = this.audioContext;
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+
+        // Growl/roar sound (low pitch)
+        oscillator.type = 'sawtooth';
+        oscillator.frequency.setValueAtTime(100, ctx.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(50, ctx.currentTime + 0.3);
+
+        gainNode.gain.setValueAtTime(0.2, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+
+        oscillator.start(ctx.currentTime);
+        oscillator.stop(ctx.currentTime + 0.3);
     }
 
     update() {
@@ -474,6 +525,9 @@ class GameScene extends Phaser.Scene {
         this.coinsCollected++;
         this.updateUI();
 
+        // Play coin sound
+        this.playCoinSound();
+
         // Coin sparkle effect
         const sparkle = this.add.circle(coin.x, coin.y, 12, 0xFFFF00, 0.8);
         this.tweens.add({
@@ -487,23 +541,18 @@ class GameScene extends Phaser.Scene {
 
     // === DRAGON ENEMY SYSTEM ===
     spawnDragon() {
+        // Play dragon sound
+        this.playDragonSound();
+
         // Spawn dragon ahead of player
         const x = this.player.x + 400;
         const y = 140;
 
-        // Create dragon (using rectangle as placeholder)
-        const dragon = this.dragons.create(x, y);
-
-        // Draw dragon as black rectangle (placeholder)
-        const graphics = this.add.graphics();
-        graphics.fillStyle(0x000000, 1);
-        graphics.fillRect(0, 0, 40, 30);
-        graphics.generateTexture('dragon-temp', 40, 30);
-        graphics.destroy();
-
-        dragon.setTexture('dragon-temp');
+        // Create dragon using sprite
+        const dragon = this.dragons.create(x, y, 'dragon');
+        dragon.setScale(0.08); // Reduced from 0.15 to make it narrower
         dragon.body.setAllowGravity(true);
-        dragon.body.setSize(40, 30);
+        dragon.body.setSize(dragon.width * 0.8, dragon.height * 0.8);
         dragon.setBounce(0);
         dragon.setCollideWorldBounds(true);
 
@@ -516,8 +565,6 @@ class GameScene extends Phaser.Scene {
         dragon.direction = -1; // Start moving left
         dragon.patrolDistance = 200;
         dragon.startX = x;
-        dragon.fireTimer = 0;
-        dragon.fireCooldown = 3000; // 3 seconds
     }
 
     updateDragon(dragon) {
@@ -532,29 +579,14 @@ class GameScene extends Phaser.Scene {
             dragon.direction = -1;
             dragon.flipX = false;
         }
-
-        // Fire attack
-        dragon.fireTimer += this.game.loop.delta;
-        if (dragon.fireTimer >= dragon.fireCooldown) {
-            this.dragonShootFire(dragon);
-            dragon.fireTimer = 0;
-        }
     }
 
     dragonShootFire(dragon) {
         // Create fire projectile
-        const fire = this.fireProjectiles.create(dragon.x, dragon.y);
-
-        // Draw fire as red circle
-        const graphics = this.add.graphics();
-        graphics.fillStyle(0xFF4500, 1);
-        graphics.fillCircle(8, 8, 8);
-        graphics.generateTexture('fire-temp', 16, 16);
-        graphics.destroy();
-
-        fire.setTexture('fire-temp');
+        const fire = this.fireProjectiles.create(dragon.x, dragon.y, 'fire');
+        fire.setScale(0.1); // Adjust scale as needed
         fire.body.setAllowGravity(false);
-        fire.body.setSize(16, 16);
+        fire.body.setSize(fire.width * 0.8, fire.height * 0.8);
         fire.setVelocityX(dragon.direction * -150); // Shoot towards player
 
         // Destroy fire after 3 seconds
@@ -601,18 +633,10 @@ class GameScene extends Phaser.Scene {
         const y = 140;
 
         // Create chicken leg power-up (health restore)
-        const powerUp = this.powerUps.create(x, y);
-
-        // Draw as brown/red rectangle (chicken leg placeholder)
-        const graphics = this.add.graphics();
-        graphics.fillStyle(0x8B4513, 1);
-        graphics.fillRect(0, 0, 20, 20);
-        graphics.generateTexture('powerup-health', 20, 20);
-        graphics.destroy();
-
-        powerUp.setTexture('powerup-health');
+        const powerUp = this.powerUps.create(x, y, 'powerup-health');
+        powerUp.setScale(0.05); // Adjust scale as needed
         powerUp.body.setAllowGravity(false);
-        powerUp.body.setSize(20, 20);
+        powerUp.body.setSize(powerUp.width * 0.04, powerUp.height * 0.03);
         powerUp.powerUpType = 'health';
 
         // Bobbing animation
