@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oak Woods Platformer</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #1a1a2e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+
+        #game-container {
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            max-width: 250px;
+        }
+
+        #controls h3 {
+            margin: 0 0 10px 0;
+            color: #4ECDC4;
+        }
+
+        #controls p {
+            margin: 5px 0;
+        }
+
+        #controls kbd {
+            background: #333;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="controls">
+        <h3>🎮 Controls</h3>
+        <p><kbd>←</kbd> <kbd>→</kbd> Move</p>
+        <p><kbd>↑</kbd> Jump</p>
+        <kbd>↓</kbd> Crouch</p>
+        <p><kbd>X</kbd> Attack</p>
+        <p><kbd>D</kbd> Test Damage</p>
+        <p style="margin-top:10px; font-size:12px; color:#aaa;">Press R to restart after game over</p>
+    </div>
+    <div id="game-container"></div>
+
+    <!-- Load Phaser from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
+    <script src="game-standalone.js"></script>
+</body>
+
+</html>
